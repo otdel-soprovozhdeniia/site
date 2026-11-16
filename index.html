@@ -95,6 +95,12 @@ details .exams{margin:0}.exams dd{white-space:pre-line}
 .total-filter input{width:min(100%,260px);border:1px solid #c5d3e9;border-radius:9px;background:var(--ice);padding:8px 10px;color:var(--ink)}
 .total-filter input[aria-invalid=true]{border-color:#b6410c}
 .total-filter p{color:var(--muted);font-size:.84rem;margin:6px 0 0}
+.price-filter{margin-top:15px}.price-filter legend{font-size:.95rem;margin-bottom:5px}
+.price-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,240px));gap:10px}
+.price-inputs label{display:grid;gap:5px;font-size:.89rem;color:var(--muted);font-weight:600}
+.price-inputs input{width:100%;min-width:0;border:1px solid #c5d3e9;border-radius:9px;background:var(--ice);padding:8px 10px;color:var(--ink)}
+.price-inputs input[aria-invalid=true]{border-color:#b6410c}
+.price-filter p{color:var(--muted);font-size:.84rem;margin:6px 0 0}
 </style>
 </head>
 <body>
@@ -125,6 +131,13 @@ details .exams{margin:0}.exams dd{white-space:pre-line}
 <input id="total-score" type="number" inputmode="numeric" min="0" step="1" placeholder="Например, 274" aria-describedby="total-help" disabled>
 <p id="total-help">Сложите баллы за экзамены и индивидуальные достижения (до 10). При 274 баллах в выдаче будут программы с проходным 265 и ниже, от большего к меньшему. Берём последний год, за который указан проходной балл.</p>
 </div>
+<fieldset class="price-filter"><legend>Стоимость за год, ₽</legend>
+<div class="price-inputs">
+<label>От<input id="price-min" inputmode="numeric" placeholder="Например, 200 000" aria-describedby="price-help" disabled></label>
+<label>До<input id="price-max" inputmode="numeric" placeholder="Например, 400 000" aria-describedby="price-help" disabled></label>
+</div>
+<p id="price-help">Цена за семестр умножается на два. Карточки без однозначной цены скрываются, когда заполнено хотя бы одно поле.</p>
+</fieldset>
 <div class="form-bottom"><label class="toggle"><input type="checkbox" id="disputed" disabled> Включить спорные наборы</label><p>Если нужны два ЕГЭ и экзамен вуза, выберите «ДВИ».</p></div>
 </form>
 <div class="badge-key"><span><img class="credit-icon" src="data:image/png;base64,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" alt=""> Направление в перечне образовательного кредита с господдержкой</span>
@@ -283,6 +296,36 @@ function qualifyingPassScore(row, mode, limits, score) {
   }
   return highest;
 }
+const priceMin = document.getElementById('price-min');
+const priceMax = document.getElementById('price-max');
+
+function annualPrice(value) {
+  if (typeof value !== 'string') return null;
+  const prices = new Set();
+  const normalized = value.replace(/[^\S\r\n]+/g,' ');
+  const pattern=/(\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d{4,8})(?:[.,](\d{1,2}))?\s*,?\s*(?:₽|руб(?:лей|ля)?\.?|р\.?)?\s*[,./]?\s*(?:за\s+|в\s+)?(семестр|год|1\s*[-–]?\s*й\s+курс)(?![а-яё])/gi;
+  for (const match of normalized.matchAll(pattern)) {
+    const price = Number(match[1].replace(/\s/g,'')) + (match[2] ? Number('0.'+match[2]) : 0);
+    if (price > 0) prices.add(Math.round(price*100)*(match[3].toLowerCase()==='семестр'?2:1));
+  }
+  if(/\d\s*(?:₽|руб\.?|р\.?)?\s*[/–—-]\s*\d{3,}/i.test(value))return null;
+  return prices.size===1 ? prices.values().next().value : null;
+}
+function priceBound(input) {
+  const value=input.value.trim().replace(/[ \u00a0\u202f]/g,'');
+  if(value==='')return null;
+  const amount=Number(value);
+  return /^\d+$/.test(value)&&Number.isSafeInteger(amount*100)?amount*100:NaN;
+}
+function filterByPrice(rows, min, max) {
+  if (min===null && max===null) return rows;
+  const descending=min===null;
+  return rows.map(row=>({row,price:annualPrice(row.fields[10])}))
+    .filter(({price})=>price!==null&&(min===null||price>=min)&&(max===null||price<=max))
+    .sort((a,b)=>descending?b.price-a.price:a.price-b.price)
+    .map(entry=>entry.row);
+}
+
 const formatScore=n=>n.toLocaleString('ru-RU',{maximumFractionDigits:2});
 function drawScores(years,series,title) {
   const all=years.flatMap(y=>series.map(([id])=>y.scores[id]?.[1]??0));
@@ -476,9 +519,15 @@ function refresh() {
       .sort((a,b)=>b.cutoff-a.cutoff)
       .map(entry=>entry.row);
   }
+  const minPrice=priceBound(priceMin),maxPrice=priceBound(priceMax);
+  const reversed=minPrice!==null && maxPrice!==null && minPrice>maxPrice;
+  const invalidPrice=Number.isNaN(minPrice)||Number.isNaN(maxPrice)||reversed;
+  priceMin.setAttribute('aria-invalid',String(Number.isNaN(minPrice)||reversed));
+  priceMax.setAttribute('aria-invalid',String(Number.isNaN(maxPrice)||reversed));
+  results=invalidPrice?[]:filterByPrice(results,minPrice,maxPrice);
   rendered = 0;
   cards.replaceChildren();
-  status.textContent = invalidTotal ? 'Введите общую сумму баллов целым числом.' : invalidScores ? 'Введите целые баллы от 0 до 100.' : !key ?
+  status.textContent = invalidPrice ? (reversed?'Цена «От» должна быть не выше цены «До».':'Введите стоимость целым числом в рублях.') : invalidTotal ? 'Введите общую сумму баллов целым числом.' : invalidScores ? 'Введите целые баллы от 0 до 100.' : !key ?
     'Выберите три разных экзамена. Можно указать один иностранный язык.' :
     results.length ? 'Найдено программ: '+results.length.toLocaleString('ru-RU') : 'Нет программ по выбранным фильтрам';
   appendPage();
@@ -500,6 +549,10 @@ try {
   for (const select of [university,funding,direction]) {
     select.disabled = false;
     select.addEventListener('change',refresh);
+  }
+  for (const input of [priceMin,priceMax]) {
+    input.disabled=false;
+    input.addEventListener('input',refresh);
   }
   totalScore.disabled = false;
   totalScore.addEventListener('input',refresh);
