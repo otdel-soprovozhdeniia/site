@@ -90,6 +90,11 @@ details .exams{margin:0}.exams dd{white-space:pre-line}
 .private-school{display:inline-block;margin-left:.65em;border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--ink);font-size:.75rem}
 .badge-key{display:flex;flex-wrap:wrap;gap:7px 18px;color:var(--muted);font-size:.82rem;margin-top:12px}
 .badge-key .credit-icon{margin:0 3px 0 0}.beyond-axis{border-top:2px dashed var(--ink)}
+.total-filter{margin-top:15px}
+.total-filter label{display:block;font-weight:700;font-size:.93rem;margin-bottom:5px}
+.total-filter input{width:min(100%,260px);border:1px solid #c5d3e9;border-radius:9px;background:var(--ice);padding:8px 10px;color:var(--ink)}
+.total-filter input[aria-invalid=true]{border-color:#b6410c}
+.total-filter p{color:var(--muted);font-size:.84rem;margin:6px 0 0}
 </style>
 </head>
 <body>
@@ -115,6 +120,11 @@ details .exams{margin:0}.exams dd{white-space:pre-line}
 <label>Направление<select id="direction" disabled><option value="">Все направления</option></select></label>
 </div>
 <fieldset class="score-fields"><legend>Минимальные баллы по предметам</legend><div id="score-inputs" class="selects"></div></fieldset>
+<div class="total-filter">
+<label for="total-score">Сумма баллов для поступления</label>
+<input id="total-score" type="number" inputmode="numeric" min="0" step="1" placeholder="Например, 274" aria-describedby="total-help" disabled>
+<p id="total-help">Сложите баллы за экзамены и индивидуальные достижения (до 10). При 274 баллах в выдаче будут программы с проходным 265 и ниже, от большего к меньшему. Берём последний год, за который указан проходной балл.</p>
+</div>
 <div class="form-bottom"><label class="toggle"><input type="checkbox" id="disputed" disabled> Включить спорные наборы</label><p>Если нужны два ЕГЭ и экзамен вуза, выберите «ДВИ».</p></div>
 </form>
 <div class="badge-key"><span><img class="credit-icon" src="data:image/png;base64,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" alt=""> Направление в перечне образовательного кредита с господдержкой</span>
@@ -148,6 +158,7 @@ function matchPrograms(rows, key, disputed) {
 const selects = ['first','second','third'].map(id => document.getElementById(id));
 const university = document.getElementById('university');
 const funding = document.getElementById('funding');
+const totalScore = document.getElementById('total-score');
 const fundingColumns = {budget:8,paid:9};
 
 function hasPlaces(value) {
@@ -258,6 +269,19 @@ function parsePass(value) {
     put(key,m[2],m[3]);
   }
   return out;
+}
+function qualifyingPassScore(row, mode, limits, score) {
+  const tracks = mode ? [mode] : ['budget','paid'];
+  const years = yearFields.map(([,index]) => parsePass(row.fields[index])).reverse();
+  let highest = null;
+  for (const track of tracks) {
+    const last = years.find(year => Array.isArray(year[track]));
+    const cutoff = last?.[track][0];
+    if (cutoff !== undefined && cutoff <= score - 9 && matchesScores(row, track, limits)) {
+      highest = highest === null ? cutoff : Math.max(highest, cutoff);
+    }
+  }
+  return highest;
 }
 const formatScore=n=>n.toLocaleString('ru-RU',{maximumFractionDigits:2});
 function drawScores(years,series,title) {
@@ -437,11 +461,24 @@ function refresh() {
   const active = [...new Set(choices)].filter(i=>scoreLimits.get(i));
   const invalidScores=active.some(i=>!validLimit(scoreLimits.get(i)));
   const limits=active.map(i=>[i,Number(scoreLimits.get(i))]);
-  results = invalidScores?[]:filterOffers(matchPrograms(catalog.rows,key,disputed.checked), university.value, funding.value)
-    .filter(row => (!direction.value || row.fields[1]===direction.value) && matchesScores(row,funding.value,limits));
+  const rawTotal=totalScore.value.trim();
+  const total=rawTotal===''?null:Number(rawTotal);
+  const invalidTotal=totalScore.validity?.badInput ||
+    (total!==null && (!/^\d+$/.test(rawTotal)||!Number.isSafeInteger(total)));
+  totalScore.setAttribute('aria-invalid',String(Boolean(invalidTotal)));
+  results = (invalidScores||invalidTotal)?[]:filterOffers(matchPrograms(catalog.rows,key,disputed.checked), university.value, funding.value)
+    .filter(row => (!direction.value || row.fields[1]===direction.value)  );
+  if (total === null) {
+    results=results.filter(row=>matchesScores(row,funding.value,limits));
+  } else {
+    results=results.map(row=>({row,cutoff:qualifyingPassScore(row,funding.value,limits,total)}))
+      .filter(entry=>entry.cutoff!==null)
+      .sort((a,b)=>b.cutoff-a.cutoff)
+      .map(entry=>entry.row);
+  }
   rendered = 0;
   cards.replaceChildren();
-  status.textContent = invalidScores ? 'Введите целые баллы от 0 до 100.' : !key ?
+  status.textContent = invalidTotal ? 'Введите общую сумму баллов целым числом.' : invalidScores ? 'Введите целые баллы от 0 до 100.' : !key ?
     'Выберите три разных экзамена. Можно указать один иностранный язык.' :
     results.length ? 'Найдено программ: '+results.length.toLocaleString('ru-RU') : 'Нет программ по выбранным фильтрам';
   appendPage();
@@ -464,6 +501,8 @@ try {
     select.disabled = false;
     select.addEventListener('change',refresh);
   }
+  totalScore.disabled = false;
+  totalScore.addEventListener('input',refresh);
   disputed.checked = catalog.disputed;
   disputed.disabled = false;
   disputed.addEventListener('change',refresh);
@@ -479,4 +518,3 @@ try {
 
 </script>
 </body></html>
-
