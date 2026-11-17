@@ -150,8 +150,8 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 #university-options{max-height:min(235px,42vh);overflow:auto;margin-top:6px;overscroll-behavior:contain}
 #university-options label{display:flex;align-items:center;gap:8px;padding:5px;color:var(--ink);cursor:pointer}
 #university-options input{accent-color:var(--accent-text);flex:none}
-#university-clear{background:var(--ice);color:var(--accent-text);border:1px solid var(--field-line);border-radius:6px;padding:4px 8px;cursor:pointer}
-#university-clear:disabled{opacity:.6;cursor:default}
+#university-clear,#direction-clear{background:var(--ice);color:var(--accent-text);border:1px solid var(--field-line);border-radius:6px;padding:4px 8px;cursor:pointer}
+#university-clear:disabled,#direction-clear:disabled{opacity:.6;cursor:default}
 .hero{overflow:visible}
 
 .exam-filter summary{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -204,7 +204,16 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 <label>Условия поступления<select id="funding" disabled>
 <option value="">Любая</option><option value="budget">Бюджет</option><option value="paid">Платное</option>
 </select></label>
-<label>Направление<select id="direction" disabled><option value="">Все направления</option></select></label>
+<div class="school-filter exam-filter">
+<span class="school-filter-label" id="direction-label">Направления</span>
+<details id="direction" aria-labelledby="direction-label">
+<summary><span id="direction-summary">Все направления</span></summary>
+<div class="school-options exam-options">
+<button type="button" id="direction-clear" disabled>Сбросить выбор</button>
+<div id="direction-options" role="group" aria-labelledby="direction-label"></div>
+</div>
+</details>
+</div>
 </div>
 <fieldset class="score-fields"><legend>Минимальные баллы по предметам</legend><div id="score-inputs" class="selects"></div></fieldset>
 <div class="total-filter">
@@ -353,6 +362,10 @@ function filterOffers(rows, schools, mode) {
 }
 
 const direction = document.getElementById('direction');
+const directionSummary = document.getElementById('direction-summary');
+const directionOptions = document.getElementById('direction-options');
+const directionClear = document.getElementById('direction-clear');
+const selectedDirections = new Set();
 const scoreInputs = document.getElementById('score-inputs');
 const subjectCodes = ['ru','math','physics','cs','chem','bio','geo','history','social','lit',
   'foreign','en','zh','de','fr','es','dvi'];
@@ -663,13 +676,37 @@ function appendPage() {
   more.hidden = rendered >= results.length;
 }
 let displayedDirections = [];
+function updateDirectionSummary() {
+  const count = selectedDirections.size;
+  directionSummary.textContent = count ? 'Выбрано: ' + count : 'Все направления';
+  directionClear.disabled = !count;
+}
+
 function updateDirections(rows) {
-  const names = [...new Set(rows.map(row=>row.fields[1]))].sort((a,b)=>a.localeCompare(b,'ru'));
+  const available = new Set(rows.map(row=>row.fields[1]));
+  const names = [...available].sort((a,b)=>a.localeCompare(b,'ru'));
   if (names.length === displayedDirections.length && names.every((name,i)=>name===displayedDirections[i])) return;
   displayedDirections = names;
-  const previous = direction.value;
-  direction.replaceChildren(new Option('Все направления',''), ...names.map(name=>new Option(name,name)));
-  direction.value = names.includes(previous) ? previous : '';
+  for (const name of selectedDirections) {
+    if (!available.has(name)) selectedDirections.delete(name);
+  }
+  directionOptions.replaceChildren();
+  if (!names.length) directionOptions.append(el('p','Нет направлений по выбранным экзаменам.'));
+  for (const name of names) {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = selectedDirections.has(name);
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) selectedDirections.add(name);
+      else selectedDirections.delete(name);
+      updateDirectionSummary();
+      refresh();
+    });
+    label.append(checkbox,name);
+    directionOptions.append(label);
+  }
+  updateDirectionSummary();
 }
 
 function refresh() {
@@ -691,7 +728,7 @@ function refresh() {
     (total!==null && (!/^\d+$/.test(rawTotal)||!Number.isSafeInteger(total)));
   totalScore.setAttribute('aria-invalid',String(Boolean(invalidTotal)));
   results = (invalidScores||invalidTotal)?[]:filterOffers(examMatches, selectedSchools, funding.value)
-    .filter(row => (!direction.value || row.fields[1]===direction.value)  );
+    .filter(row => (!selectedDirections.size || selectedDirections.has(row.fields[1]))  );
   if (total === null) {
     results=results.filter(row=>applicableLimits(row,limits).some(test=>matchesScores(row,funding.value,test)));
   } else {
@@ -752,7 +789,7 @@ try {
     updateSchoolSelection();
   });
   document.addEventListener('click', event => {
-    for (const menu of [university,...examMenus]) {
+    for (const menu of [university,direction,...examMenus]) {
       if (menu.open && !menu.contains(event.target)) menu.open = false;
     }
   });
@@ -763,10 +800,21 @@ try {
     }
   });
   refreshScoreInputs();
-  for (const select of [funding,direction]) {
-    select.disabled = false;
-    select.addEventListener('change',refresh);
-  }
+  directionClear.addEventListener('click', () => {
+    selectedDirections.clear();
+    for (const checkbox of directionOptions.querySelectorAll('input:checked')) checkbox.checked = false;
+    direction.querySelector('summary').focus();
+    updateDirectionSummary();
+    refresh();
+  });
+  direction.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && direction.open) {
+      direction.open = false;
+      direction.querySelector('summary').focus();
+    }
+  });
+  funding.disabled = false;
+  funding.addEventListener('change',refresh);
   for (const input of [priceMin,priceMax]) {
     input.disabled=false;
     input.addEventListener('input',refresh);
