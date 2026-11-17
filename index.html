@@ -183,6 +183,19 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 .exam-help{font-size:.86rem;color:var(--muted);margin:8px 0 0}
 #exams-clear{background:var(--ice);color:var(--accent-text);border:1px solid var(--field-line);border-radius:6px;padding:4px 8px;cursor:pointer}
 #exams-clear:disabled{opacity:.6;cursor:default}
+
+.moscow-data{
+  display:grid;grid-template-columns:minmax(65px,.55fr) minmax(0,1.2fr) minmax(0,1fr);
+  column-gap:16px;row-gap:14px;width:100%;margin:12px 0 16px;
+}
+.moscow-data>div{min-width:0}
+.moscow-data .moscow-field-3{grid-column:1/-1}
+.moscow-data dt{line-height:1.35;margin-bottom:5px}
+.moscow-data dd{line-height:1.55;margin-bottom:0}
+@media(max-width:480px){
+  .moscow-data{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px}
+  .moscow-data .moscow-field-2{grid-column:1/-1}
+}
 </style>
 </head>
 <body>
@@ -367,18 +380,48 @@ function moscowPassingCharts(row) {
   return area;
 }
 
+function formatMoscowField(value,index) {
+  let text = String(value);
+  // Restore words split by the narrow columns of the source PDF.
+  const words = ['Обществознание','Информатика','Математика','Литература',
+    'Иностранный','Английский','Китайский','Немецкий','Французский','Испанский',
+    'Физика','Химия','Биология','География','История','Русский',
+    'Профессиональное','испытание','письменно','Бюджет','Платное','Контракт','Коммерция'];
+  for (const word of words) {
+    const pattern = word.split('').join('[ \t\n\r]*');
+    text=text.replace(new RegExp(pattern,'gi'),match=>match.replace(/\s+/g,''));
+  }
+  text=text.replace(/([–—-])\s*\n\s*(\d)/g,'$1 $2');
+  if (index===2) return text.replace(/\s+/g,' ').trim();
+  if (index===3) {
+    return text.replace(/\s+/g,' ').replace(/(^|\s)(\d{1,2})\s*\.\s*/g,'\n$2. ')
+      .replace(/\s*\/\s*/g,' / ').trim();
+  }
+  return text.replace(/[ \t]+/g,' ').trim();
+}
+
 function makeMoscowCard(row) {
   const raw = row.rawMoscow;
   const card = el('article','','card');
   card.append(el('p',row.fields[0],'school'),el('p','Москва','card-city'),
     el('p',row.fields[1],'direction'),el('h3',row.fields[2]));
-  const data = el('dl','','details moscow-data');
-  const labels = ['Направление','Образовательная программа','Срок обучения','Предметы',
-    'Бюджетные и платные места 2026','Минимальные баллы 2026','Проходные баллы 2025','Проходные баллы 2026'];
-  for (let i=2;i<6;i++) {
-    if (raw[i]?.trim()) pair(data,labels[i],raw[i]);
+  const stats = el('dl','','stats');
+  pair(stats,'Срок',formatMoscowField(raw[2],2));
+  if (row.fields[8]) pair(stats,'Бюджет 2026',row.fields[8].replace(/\\/g,'/'));
+  if (row.fields[9]) pair(stats,'Платное 2026',row.fields[9].replace(/\\/g,'/'));
+  if (stats.childElementCount) card.append(stats);
+
+  const exams = el('dl','','details exams');
+  if (raw[3]?.trim()) pair(exams,'Экзамены по приоритету',formatMoscowField(raw[3],3));
+  if (exams.childElementCount) card.append(exams);
+
+  const data = el('dl','','details');
+  if (raw[4]?.trim() && !row.fields[8] && !row.fields[9]) {
+    pair(data,'Места 2026',formatMoscowField(raw[4],4));
   }
-  card.append(data,moscowPassingCharts(row));
+  if (raw[5]?.trim()) pair(data,'Минимальные баллы 2026',formatMoscowField(raw[5],5));
+  if (data.childElementCount) card.append(data);
+  card.append(moscowPassingCharts(row));
   if (row.programLinks.length) {
     const actions=el('div','','actions');
     for (const [name,url] of row.programLinks) actions.append(externalLink('Образовательная программа',url,'program'));
