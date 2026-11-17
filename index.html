@@ -176,6 +176,13 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 .extra-exams{margin-top:15px}.extra-exams:not(:has(> :not([hidden]))){display:none}
 .card-city{color:var(--muted);font-size:.8rem;margin:0 0 6px}
 .moscow-data dd{white-space:pre-line}
+
+.all-exams{width:100%}
+.all-exams summary{height:auto;min-height:47px;white-space:normal}
+.all-exams .school-options{width:min(540px,100%)}
+.exam-help{font-size:.86rem;color:var(--muted);margin:8px 0 0}
+#exams-clear{background:var(--ice);color:var(--accent-text);border:1px solid var(--field-line);border-radius:6px;padding:4px 8px;cursor:pointer}
+#exams-clear:disabled{opacity:.6;cursor:default}
 </style>
 </head>
 <body>
@@ -186,29 +193,20 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 <p class="context">ПРИЁМНАЯ КАМПАНИЯ 2026</p>
 <h1>Подбор программ<br> <span>по ЕГЭ</span></h1>
 <div class="hero-skyline" aria-hidden="true"></div>
-<p class="intro">Выберите экзамены. Для второго и третьего экзаменов можно отметить несколько вариантов или выбрать «Любой». У московских программ могут быть дополнительные испытания — для них есть отдельные поля. Затем при необходимости уточните вузы, направление и условия поступления. В полях баллов введите свои результаты или ожидаемые баллы: подбор покажет программы, где требования не выше введённых. Пустое поле не ограничивает выдачу.</p>
+<p class="intro">Выберите города и отметьте все сдаваемые экзамены в одном списке. Подбор покажет программы, для которых у вас есть необходимый набор предметов; затем уточните вузы, направления и условия поступления. В полях баллов укажите свои результаты или ожидаемые баллы — пустые поля не ограничивают выдачу.</p>
 <form id="filters" class="filters">
 <fieldset class="city-filter"><legend>Город</legend>
 <div class="city-choices"><label><input type="checkbox" name="catalog-city" value="spb" checked> Санкт-Петербург</label>
 <label><input type="checkbox" name="catalog-city" value="moscow" checked> Москва</label></div></fieldset>
-<fieldset><legend>Ваши экзамены</legend><div class="selects">
-<label>Первый экзамен<select id="first" disabled></select></label>
-<div class="school-filter exam-filter">
-<span class="school-filter-label" id="second-label">Второй экзамен</span>
-<details id="second" aria-labelledby="second-label">
-<summary>Любой</summary>
-<div class="school-options exam-options" role="group" aria-labelledby="second-label"></div>
-</details>
-</div>
-<div class="school-filter exam-filter">
-<span class="school-filter-label" id="third-label">Третий экзамен</span>
-<details id="third" aria-labelledby="third-label">
-<summary>Любой</summary>
-<div class="school-options exam-options" role="group" aria-labelledby="third-label"></div>
-</details>
-</div>
-</div></fieldset>
-
+<fieldset><legend>Ваши экзамены</legend>
+<div class="school-filter exam-filter all-exams">
+<details id="all-exams" aria-label="Сдаваемые экзамены">
+<summary><span id="all-exams-summary">Выберите экзамены</span></summary>
+<div class="school-options exam-options"><button type="button" id="exams-clear">Сбросить выбор</button>
+<div id="all-exams-options" role="group" aria-label="Сдаваемые экзамены"></div></div>
+</details></div>
+<p class="exam-help">Отметьте все сдаваемые предметы. Если планируете сдавать дополнительные испытания вуза, отметьте также ДВИ.</p>
+</fieldset>
 <div class="extra-filters">
 <div class="school-filter">
 <label class="school-filter-label" id="school-filter-label">Вузы</label>
@@ -234,16 +232,6 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 </details>
 </div>
 </div>
-<div class="selects extra-exams"><div class="school-filter exam-filter" data-extra-exam hidden>
-<span class="school-filter-label" id="extra-0-label">Четвёртый экзамен · Москва</span>
-<details id="extra-0" aria-labelledby="extra-0-label"><summary>Любой</summary>
-<div class="school-options exam-options" role="group" aria-labelledby="extra-0-label"></div></details></div><div class="school-filter exam-filter" data-extra-exam hidden>
-<span class="school-filter-label" id="extra-1-label">Пятый экзамен · Москва</span>
-<details id="extra-1" aria-labelledby="extra-1-label"><summary>Любой</summary>
-<div class="school-options exam-options" role="group" aria-labelledby="extra-1-label"></div></details></div><div class="school-filter exam-filter" data-extra-exam hidden>
-<span class="school-filter-label" id="extra-2-label">Шестой экзамен · Москва</span>
-<details id="extra-2" aria-labelledby="extra-2-label"><summary>Любой</summary>
-<div class="school-options exam-options" role="group" aria-labelledby="extra-2-label"></div></details></div></div>
 <fieldset class="score-fields"><legend>Минимальные баллы по предметам</legend><div id="score-inputs" class="selects"></div></fieldset>
 <div class="total-filter">
 <label for="total-score">Сумма баллов для поступления</label>
@@ -290,87 +278,50 @@ function matchPrograms(rows, key, disputed) {
 }
 
 
-const firstExam = document.getElementById('first');
-const examMenus = ['second','third'].map(id => document.getElementById(id));
-const alternateExams = [new Set(), new Set()];
-const chosenSubjects = () => [Number(firstExam.value), ...alternateExams[0], ...alternateExams[1],
-  ...(selectedCities().has('moscow') ? extraExams.flatMap(set=>[...set]) : [])];
+const examMenu = document.getElementById('all-exams');
+const examSummary = document.getElementById('all-exams-summary');
+const examOptions = document.getElementById('all-exams-options');
+const examClear = document.getElementById('exams-clear');
+const selectedExams = new Set();
+const chosenSubjects = () => [...selectedExams];
 
 function matchingExamKeys() {
-  const allSubjects = catalog.subjects.map((_,i) => i);
-  const [second,third] = alternateExams.map(set => set.size ? set : allSubjects);
+  const choices = chosenSubjects();
   const keys = new Set();
-  for (const b of second) {
-    for (const c of third) {
-      const key = examKey([Number(firstExam.value),b,c]);
-      if (key) keys.add(key);
+  for (let a=0;a<choices.length;a++) {
+    for (let b=a+1;b<choices.length;b++) {
+      for (let c=b+1;c<choices.length;c++) {
+        const key = examKey([choices[a],choices[b],choices[c]]);
+        if (key) keys.add(key);
+      }
     }
   }
   return keys;
 }
 
-function initExamMenu(menu, selected, initial) {
-  const summary = menu.querySelector('summary');
-  const options = menu.querySelector('.exam-options');
-  const checkboxes = [];
-  const addChoice = (label, checked, change) => {
-    const box = document.createElement('input');
-    box.type = 'checkbox';
-    box.checked = checked;
-    box.addEventListener('change', () => {
-      change(box.checked);
-      any.checked = !selected.size;
-      for (const [i, subjectBox] of checkboxes) subjectBox.checked = selected.has(i);
-      summary.textContent = !selected.size ? 'Любой' :
-        selected.size === 1 ? catalog.subjects[[...selected][0]] : 'Выбрано: ' + selected.size;
-      refreshScoreInputs();
-      refresh();
-    });
-    const item = document.createElement('label');
-    item.append(box,label);
-    options.append(item);
-    return box;
-  };
-  if (initial !== null) selected.add(initial);
-  summary.textContent = initial === null ? 'Любой' : catalog.subjects[initial];
-  const any = addChoice('Любой', initial === null, checked => { if (checked) selected.clear(); });
-  catalog.subjects.forEach((subject,i) => {
-    checkboxes.push([i,addChoice(subject, i === initial, checked => {
-      if (checked) selected.add(i);
-      else selected.delete(i);
-    })]);
-  });
-  menu.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && menu.open) {
-      menu.open = false;
-      summary.focus();
-    }
-  });
+function updateExamSummary() {
+  examSummary.textContent = selectedExams.size ?
+    chosenSubjects().map(i=>catalog.subjects[i]).join(', ') : 'Выберите экзамены';
+  examClear.disabled = !selectedExams.size;
+}
+
+function moscowCombinations(row) {
+  if (!row.requirements?.length || row.requirements.some(group=>!group.length)) return [];
+  let combinations = [new Set()];
+  for (const group of row.requirements) {
+    const choices = group.filter(i=>selectedExams.has(i));
+    if (!choices.length) return [];
+    combinations = combinations.flatMap(combination=>choices.map(i=>new Set([...combination,i])));
+  }
+  return combinations;
 }
 const cityInputs = [...document.querySelectorAll('input[name="catalog-city"]')];
 const selectedCities = () => new Set(cityInputs.filter(input=>input.checked).map(input=>input.value));
-const extraExamMenus = [...document.querySelectorAll('[data-extra-exam]')];
-const extraExams = extraExamMenus.map(()=>new Set());
 const cityLabel = row => row.city === 'moscow' ? 'Москва' : 'Санкт-Петербург';
 
 function matchesMoscowExams(row) {
-  const requirements = row.requirements;
-  if (!requirements?.length || requirements.some(group=>!group.length)) return false;
-  const slots = [new Set([Number(firstExam.value)]), ...alternateExams, ...extraExams];
-  if (requirements.length > slots.length) return false;
-  // A checked item is an alternative within a slot. Each required exam occupies one slot.
-  function assign(remaining, used) {
-    if (!remaining.length) return slots.every((slot,i)=>!slot.size || used.has(i));
-    const [group,...rest] = remaining;
-    for (let i=0;i<slots.length;i++) {
-      if (used.has(i) || (slots[i].size && !group.some(subject=>slots[i].has(subject)))) continue;
-      const next = new Set(used);
-      next.add(i);
-      if (assign(rest,next)) return true;
-    }
-    return false;
-  }
-  return assign(requirements,new Set());
+  return Boolean(row.requirements?.length) &&
+    row.requirements.every(group=>group.some(i=>selectedExams.has(i)));
 }
 
 function refreshCitySchools() {
@@ -384,7 +335,36 @@ function refreshCitySchools() {
   }
   universitySummary.textContent = selectedSchools.size ? 'Выбрано: '+selectedSchools.size : 'Все вузы';
   universityClear.disabled = !selectedSchools.size;
-  for (const holder of extraExamMenus) holder.hidden = !cities.has('moscow');
+}
+
+function moscowScoreMaximum(row) {
+  const count = row.requirements?.length ?? 0;
+  return count >= 3 ? count * 100 + 10 : null;
+}
+
+function moscowPassingCharts(row) {
+  const maximum = moscowScoreMaximum(row);
+  const years = [[2025,6],[2026,7]].map(([year,index])=>{
+    const raw = row.rawMoscow[index];
+    return {year,raw,scores:parsePass(raw)};
+  });
+  const area=el('div','','score-area');
+  const chart=maximum === null ? null :
+    drawScores(years,[['budget','Бюджет'],['paid','Платное']],'Проходные баллы',maximum);
+  if (chart) area.append(chart);
+  if (maximum === null) {
+    area.append(el('p','В исходном файле неполный набор экзаменов. Максимум шкалы не определён.','score-notes'));
+  }
+  const notes = years.filter(y=>y.raw?.trim() &&
+    (!chart || /нет|не было|новая|не указ|не выдел|не набра|—/i.test(y.raw) ||
+      Object.values(y.scores).includes(null) || !Object.values(y.scores).some(Boolean)));
+  if (notes.length) {
+    const details=el('details','','score-notes');
+    details.append(el('summary','Сведения о проходных баллах из файла'));
+    for (const year of notes) details.append(el('p',year.year+' · '+year.raw));
+    area.append(details);
+  }
+  return area;
 }
 
 function makeMoscowCard(row) {
@@ -395,10 +375,10 @@ function makeMoscowCard(row) {
   const data = el('dl','','details moscow-data');
   const labels = ['Направление','Образовательная программа','Срок обучения','Предметы',
     'Бюджетные и платные места 2026','Минимальные баллы 2026','Проходные баллы 2025','Проходные баллы 2026'];
-  for (let i=2;i<raw.length;i++) {
+  for (let i=2;i<6;i++) {
     if (raw[i]?.trim()) pair(data,labels[i],raw[i]);
   }
-  card.append(data);
+  card.append(data,moscowPassingCharts(row));
   if (row.programLinks.length) {
     const actions=el('div','','actions');
     for (const [name,url] of row.programLinks) actions.append(externalLink('Образовательная программа',url,'program'));
@@ -606,10 +586,10 @@ function filterByPrice(rows, min, max) {
 }
 
 const formatScore=n=>n.toLocaleString('ru-RU',{maximumFractionDigits:2});
-function drawScores(years,series,title) {
+function drawScores(years,series,title,maximum = null) {
   const all=years.flatMap(y=>series.map(([id])=>y.scores[id]?.[1]??0));
   if(!all.some(Boolean))return null;
-  const ceiling=series[0][0]==='average'?100:300;
+  const ceiling=maximum ?? (series[0][0]==='average'?100:300);
   const fig=el('figure','','score-chart');
   fig.append(el('figcaption',title));
   const legend=el('div','','score-legend');
@@ -619,6 +599,8 @@ function drawScores(years,series,title) {
   const ticks=el('div','','score-ticks');
   ticks.append(el('span','Балл'),el('span',String(ceiling)),el('span',formatScore(ceiling/2)),el('span','0'));
   const main=el('div','','score-main'),plot=el('div','','score-plot'),yearsLine=el('div','','score-years');
+  plot.style.gridTemplateColumns = 'repeat('+years.length+',minmax(0,1fr))';
+  yearsLine.style.gridTemplateColumns = 'repeat('+years.length+',minmax(0,1fr))';
   for(const y of years){
     const group=el('div','','score-group');
     for(const [id,name] of series){
@@ -825,8 +807,7 @@ function refresh() {
   const applicableLimits = (row,limits) => {
     if (!limits.length) return [limits];
     if (row.city === 'moscow') {
-      const subjects = new Set(row.requirements.flat());
-      return [limits.filter(([i])=>subjects.has(i))];
+      return moscowCombinations(row).map(subjects=>limits.filter(([i])=>subjects.has(i)));
     }
     return (disputed.checked ? row.expanded : row.confirmed).filter(key=>keys.has(key))
       .map(key=>limits.filter(([i])=>key.split('.').includes(String(i+1).padStart(2,'0'))));
@@ -861,20 +842,45 @@ function refresh() {
   results=invalidPrice?[]:filterByPrice(results,minPrice,maxPrice);
   rendered = 0;
   cards.replaceChildren();
-  status.textContent = invalidPrice ? (reversed?'Цена «От» должна быть не выше цены «До».':'Введите стоимость целым числом в рублях.') : invalidTotal ? 'Введите общую сумму баллов целым числом.' : invalidScores ? 'Введите целые баллы от 0 до 100.' : !cities.size ? 'Выберите хотя бы один город.' : !keys.size ?
-    'Укажите разные экзамены и не более одного иностранного языка.' :
+  status.textContent = invalidPrice ? (reversed?'Цена «От» должна быть не выше цены «До».':'Введите стоимость целым числом в рублях.') : invalidTotal ? 'Введите общую сумму баллов целым числом.' : invalidScores ? 'Введите целые баллы от 0 до 100.' : !cities.size ? 'Выберите хотя бы один город.' : !selectedExams.size ?
+    'Отметьте сдаваемые экзамены.' :
     results.length ? 'Найдено программ: '+results.length.toLocaleString('ru-RU') : 'Нет программ по выбранным фильтрам';
   appendPage();
   refreshUnspecifiedExams();
 }
 try {
   catalog = JSON.parse(document.getElementById('catalog-data').textContent);
-  for (const [index,subject] of catalog.subjects.entries()) firstExam.add(new Option(subject,String(index)));
-  firstExam.value = String(catalog.default[0]);
-  firstExam.disabled = false;
-  firstExam.addEventListener('change',()=>{refreshScoreInputs();refresh();});
-  examMenus.forEach((menu,i)=>initExamMenu(menu,alternateExams[i],catalog.default[i+1]));
-  extraExamMenus.forEach((holder,i)=>initExamMenu(holder.querySelector('details'),extraExams[i],null));
+  for (const i of catalog.default) selectedExams.add(i);
+  catalog.subjects.forEach((subject,i)=>{
+    const label = document.createElement('label');
+    const box = document.createElement('input');
+    box.type='checkbox';
+    box.checked=selectedExams.has(i);
+    box.addEventListener('change',()=>{
+      if (box.checked) selectedExams.add(i);
+      else selectedExams.delete(i);
+      updateExamSummary();
+      refreshScoreInputs();
+      refresh();
+    });
+    label.append(box,subject);
+    examOptions.append(label);
+  });
+  examClear.addEventListener('click',()=>{
+    selectedExams.clear();
+    for (const box of examOptions.querySelectorAll('input:checked')) box.checked=false;
+    updateExamSummary();
+    refreshScoreInputs();
+    refresh();
+    examMenu.querySelector('summary').focus();
+  });
+  examMenu.addEventListener('keydown',event=>{
+    if (event.key==='Escape' && examMenu.open) {
+      examMenu.open=false;
+      examMenu.querySelector('summary').focus();
+    }
+  });
+  updateExamSummary();
   const schoolNames = [...new Set(catalog.rows.map(row => row.fields[0]))]
     .filter(name => name && name !== '—').sort((a,b) => a.localeCompare(b,'ru'));
   const updateSchoolSelection = () => {
@@ -903,7 +909,7 @@ try {
     updateSchoolSelection();
   });
   document.addEventListener('click', event => {
-    for (const menu of [university,direction,...examMenus,...extraExamMenus.map(holder=>holder.querySelector("details"))]) {
+    for (const menu of [university,direction,examMenu]) {
       if (menu.open && !menu.contains(event.target)) menu.open = false;
     }
   });
