@@ -196,6 +196,18 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
   .moscow-data{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px}
   .moscow-data .moscow-field-2{grid-column:1/-1}
 }
+
+.minimum-score-tiles{display:flex;flex-wrap:wrap;gap:9px;margin:7px 0 12px}
+.minimum-score-tile{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:66px;max-width:100%;min-height:77px;padding:9px 13px;gap:3px;
+  background:#EDF2FB;border:1px solid #A9BFEA;border-radius:9px;color:#45618A;
+  text-align:center;white-space:normal;
+}
+.minimum-score-subject{font-size:.8rem;font-weight:700;line-height:1.25;max-width:180px}
+.minimum-score-number{font-size:1.42rem;line-height:1.15;font-weight:800}
+.minimum-score-section{font-weight:700;font-size:.85rem;margin:9px 0 0}
+.minimum-score-note{margin:4px 0;font-size:.85rem;white-space:pre-line}
 </style>
 </head>
 <body>
@@ -232,7 +244,7 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 </details>
 </div>
 <label>Условия поступления<select id="funding" disabled>
-<option value="">Любая</option><option value="budget">Бюджет</option><option value="paid">Платное</option>
+<option value="">Все</option><option value="budget">Бюджет</option><option value="paid">Платное</option>
 </select></label>
 <div class="school-filter exam-filter">
 <span class="school-filter-label" id="direction-label">Направления</span>
@@ -702,10 +714,48 @@ function el(tag, text = '', className = '') {
   if (text !== '') node.textContent = text;
   return node;
 }
+function minimumScoreTiles(value) {
+  const area = el('div','','minimum-score-area');
+  const text = formatMoscowField(String(value),5)
+    .replace(/([А-ЯЁA-Zа-яёa-z])\s*\n\s*(\([^\n)]*\))/g,'$1 $2')
+    .replace(/([А-ЯЁA-Zа-яёa-z)]|ДВИ)\s*\n\s*([–—:-])/g,'$1 $2');
+  let tiles = null;
+  for (let line of text.split('\n')) {
+    line=line.trim();
+    if (!line) continue;
+    const section=line.match(/^(бюджет|контр(?:акт)?\.?|платное|коммерция)\s*:\s*(.*)$/i);
+    if (section) {
+      area.append(el('p',section[1],'minimum-score-section'));
+      tiles=null;
+      line=section[2].trim();
+      if (!line) continue;
+    }
+    const match=line.match(/^([А-ЯЁA-Zа-яёa-z][А-ЯЁA-Zа-яёa-z .]*(?:\s*\([^)]*\))?)\s*[–—:-]\s*(\d{1,3})(?:\s*(?:балл(?:а|ов)?))?\s*$/i);
+    if (!match || Number(match[2])>100) {
+      area.append(el('p',line,'minimum-score-note'));
+      tiles=null;
+      continue;
+    }
+    if (!tiles) {
+      tiles=el('div','','minimum-score-tiles');
+      area.append(tiles);
+    }
+    const label=match[1].trim();
+    const tile=el('div','','minimum-score-tile');
+    tile.setAttribute('aria-label',label+' — '+match[2]);
+    tile.append(el('span',label,'minimum-score-subject'),el('strong',match[2],'minimum-score-number'));
+    tiles.append(tile);
+  }
+  return area;
+}
+
 function pair(parent, label, value) {
   if (value === null || value === '' || value === '—') return;
   const item = el('div');
-  item.append(el('dt',label),el('dd',String(value)));
+  const content=el('dd');
+  if (/^Минимальные баллы/.test(label)) content.append(minimumScoreTiles(value));
+  else content.textContent=String(value);
+  item.append(el('dt',label),content);
   parent.append(item);
 }
 const summaryFields = [[7,'Срок'],[8,'Бюджет 2026'],[9,'Платное 2026']];
