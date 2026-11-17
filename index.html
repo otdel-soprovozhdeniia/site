@@ -163,7 +163,7 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 <section class="hero"><div class="wrap hero-inner">
 <p class="context">ПРИЁМНАЯ КАМПАНИЯ 2026</p>
 <h1>Подбор программ<br> <span>по ЕГЭ</span></h1>
-<p class="intro">Выберите три экзамена, затем при необходимости уточните вуз, направление и условия поступления. В полях баллов введите свои результаты или ожидаемые баллы: подбор покажет программы, где требования не выше введённых. Пустое поле не ограничивает выдачу.</p>
+<p class="intro">Выберите экзамены. Для второго и третьего можно указать «Любой». Затем при необходимости уточните вузы, направление и условия поступления. В полях баллов введите свои результаты или ожидаемые баллы: подбор покажет программы, где требования не выше введённых. Пустое поле не ограничивает выдачу.</p>
 <form id="filters" class="filters">
 <fieldset><legend>Ваши экзамены</legend><div class="selects">
 <label>Первый экзамен<select id="first" disabled></select></label>
@@ -226,11 +226,32 @@ function examKey(choices) {
 }
 
 function matchPrograms(rows, key, disputed) {
-  return key ? rows.filter(row => (disputed ? row.expanded : row.confirmed).includes(key)) : [];
+  if (!key) return [];
+  const keys = key instanceof Set ? key : new Set([key]);
+  return rows.filter(row => (disputed ? row.expanded : row.confirmed).some(combo => keys.has(combo)));
 }
 
 
 const selects = ['first','second','third'].map(id => document.getElementById(id));
+const anyExam = 'any';
+const chosenSubjects = () => selects.filter(select => select.value !== anyExam)
+  .map(select => Number(select.value));
+
+function matchingExamKeys(choices) {
+  const keys = new Set();
+  function complete(selection, from) {
+    if (selection.length === 3) {
+      const key = examKey(selection);
+      if (key) keys.add(key);
+      return;
+    }
+    for (let i = from; i < catalog.subjects.length; i++) {
+      if (!selection.includes(i)) complete([...selection, i], i + 1);
+    }
+  }
+  complete(choices, 0);
+  return keys;
+}
 const university = document.getElementById('university');
 const universitySummary = document.getElementById('university-summary');
 const universityOptions = document.getElementById('university-options');
@@ -242,7 +263,11 @@ const schoolLabels = new Map([
   ['СПбГЭУ', 'СПбГЭУ «ФинЭк»'],
   ['ВХУТЕИН', 'ВХУТЕИН (частный)'],
   ['ПСПбГМУ', 'ПСПБГМУ (Павлова)'],
-  ['РГГМУ', 'РГГМУ (Гатчинский)'],
+  ['РГГМУ', 'РГГМУ (Гидромет)'],
+  ['СПбГУП', 'СПБГУП «Профсоюзов» (частный)'],
+  ['ГГУ', 'ГГУ (Гатчинский)'],
+  ['СПбГУТ', 'СПбГУТ «Бонч-Бруевича»'],
+  ['СПГХПА', 'СПБХПА «Штиглица»'],
   ['СПбГК', 'СПбГК (Консерватория)'],
   ['СПбГЛТУ', 'СПБГЛТУ (Лесопилка)'],
   ['СПбГМТУ', 'СПБГМТУ «Корабелка»'],
@@ -314,7 +339,7 @@ function minimumScores(row) {
 
 const scoreLimits=new Map();
 function refreshScoreInputs() {
-  const ids=[...new Set(selects.map(s=>Number(s.value)))];
+  const ids=[...new Set(chosenSubjects())];
   scoreInputs.replaceChildren();
   for(const i of ids){
     const label=el('label',catalog.subjects[i]);
@@ -581,8 +606,8 @@ function appendPage() {
   more.hidden = rendered >= results.length;
 }
 function refresh() {
-  const choices = selects.map(s => Number(s.value));
-  const key = examKey(choices);
+  const choices = chosenSubjects();
+  const keys = matchingExamKeys(choices);
   const active = [...new Set(choices)].filter(i=>scoreLimits.get(i));
   const invalidScores=active.some(i=>!validLimit(scoreLimits.get(i)));
   const limits=active.map(i=>[i,Number(scoreLimits.get(i))]);
@@ -591,7 +616,7 @@ function refresh() {
   const invalidTotal=totalScore.validity?.badInput ||
     (total!==null && (!/^\d+$/.test(rawTotal)||!Number.isSafeInteger(total)));
   totalScore.setAttribute('aria-invalid',String(Boolean(invalidTotal)));
-  results = (invalidScores||invalidTotal)?[]:filterOffers(matchPrograms(catalog.rows,key,disputed.checked), selectedSchools, funding.value)
+  results = (invalidScores||invalidTotal)?[]:filterOffers(matchPrograms(catalog.rows,keys,disputed.checked), selectedSchools, funding.value)
     .filter(row => (!direction.value || row.fields[1]===direction.value)  );
   if (total === null) {
     results=results.filter(row=>matchesScores(row,funding.value,limits));
@@ -609,14 +634,15 @@ function refresh() {
   results=invalidPrice?[]:filterByPrice(results,minPrice,maxPrice);
   rendered = 0;
   cards.replaceChildren();
-  status.textContent = invalidPrice ? (reversed?'Цена «От» должна быть не выше цены «До».':'Введите стоимость целым числом в рублях.') : invalidTotal ? 'Введите общую сумму баллов целым числом.' : invalidScores ? 'Введите целые баллы от 0 до 100.' : !key ?
-    'Выберите три разных экзамена. Можно указать один иностранный язык.' :
+  status.textContent = invalidPrice ? (reversed?'Цена «От» должна быть не выше цены «До».':'Введите стоимость целым числом в рублях.') : invalidTotal ? 'Введите общую сумму баллов целым числом.' : invalidScores ? 'Введите целые баллы от 0 до 100.' : !keys.size ?
+    'Укажите разные экзамены и не более одного иностранного языка.' :
     results.length ? 'Найдено программ: '+results.length.toLocaleString('ru-RU') : 'Нет программ по выбранным фильтрам';
   appendPage();
 }
 try {
   catalog = JSON.parse(document.getElementById('catalog-data').textContent);
   selects.forEach((select,i) => {
+    if (i > 0) select.add(new Option('Любой',anyExam));
     for (const [index,subject] of catalog.subjects.entries()) select.add(new Option(subject,String(index)));
     select.value = String(catalog.default[i]);
     select.disabled = false;
