@@ -153,6 +153,14 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 #university-clear{background:var(--ice);color:var(--accent-text);border:1px solid var(--field-line);border-radius:6px;padding:4px 8px;cursor:pointer}
 #university-clear:disabled{opacity:.6;cursor:default}
 .hero{overflow:visible}
+
+.exam-filter summary{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exam-options{max-height:min(290px,48vh);overflow:auto;overscroll-behavior:contain}
+.exam-options label{display:flex;align-items:center;gap:8px;padding:5px;color:var(--ink);cursor:pointer}
+.exam-options input{accent-color:var(--accent-text);flex:none}
+#university[open],.exam-filter details[open]{position:relative;z-index:2}
+.school-options{top:100%}
+@media(min-width:701px){.exam-filter:last-child .exam-options{left:auto;right:0}}
 </style>
 </head>
 <body>
@@ -162,12 +170,24 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 <section class="hero"><div class="wrap hero-inner">
 <p class="context">ПРИЁМНАЯ КАМПАНИЯ 2026</p>
 <h1>Подбор программ<br> <span>по ЕГЭ</span></h1>
-<p class="intro">Выберите экзамены. Для второго и третьего можно указать «Любой». Затем при необходимости уточните вузы, направление и условия поступления. В полях баллов введите свои результаты или ожидаемые баллы: подбор покажет программы, где требования не выше введённых. Пустое поле не ограничивает выдачу.</p>
+<p class="intro">Выберите экзамены. Для второго и третьего экзаменов можно отметить несколько вариантов или выбрать «Любой». Затем при необходимости уточните вузы, направление и условия поступления. В полях баллов введите свои результаты или ожидаемые баллы: подбор покажет программы, где требования не выше введённых. Пустое поле не ограничивает выдачу.</p>
 <form id="filters" class="filters">
 <fieldset><legend>Ваши экзамены</legend><div class="selects">
 <label>Первый экзамен<select id="first" disabled></select></label>
-<label>Второй экзамен<select id="second" disabled></select></label>
-<label>Третий экзамен<select id="third" disabled></select></label>
+<div class="school-filter exam-filter">
+<span class="school-filter-label" id="second-label">Второй экзамен</span>
+<details id="second" aria-labelledby="second-label">
+<summary>Любой</summary>
+<div class="school-options exam-options" role="group" aria-labelledby="second-label"></div>
+</details>
+</div>
+<div class="school-filter exam-filter">
+<span class="school-filter-label" id="third-label">Третий экзамен</span>
+<details id="third" aria-labelledby="third-label">
+<summary>Любой</summary>
+<div class="school-options exam-options" role="group" aria-labelledby="third-label"></div>
+</details>
+</div>
 </div></fieldset>
 
 <div class="extra-filters">
@@ -231,25 +251,61 @@ function matchPrograms(rows, key, disputed) {
 }
 
 
-const selects = ['first','second','third'].map(id => document.getElementById(id));
-const anyExam = 'any';
-const chosenSubjects = () => selects.filter(select => select.value !== anyExam)
-  .map(select => Number(select.value));
+const firstExam = document.getElementById('first');
+const examMenus = ['second','third'].map(id => document.getElementById(id));
+const alternateExams = [new Set(), new Set()];
+const chosenSubjects = () => [Number(firstExam.value), ...alternateExams[0], ...alternateExams[1]];
 
-function matchingExamKeys(choices) {
+function matchingExamKeys() {
+  const allSubjects = catalog.subjects.map((_,i) => i);
+  const [second,third] = alternateExams.map(set => set.size ? set : allSubjects);
   const keys = new Set();
-  function complete(selection, from) {
-    if (selection.length === 3) {
-      const key = examKey(selection);
+  for (const b of second) {
+    for (const c of third) {
+      const key = examKey([Number(firstExam.value),b,c]);
       if (key) keys.add(key);
-      return;
-    }
-    for (let i = from; i < catalog.subjects.length; i++) {
-      if (!selection.includes(i)) complete([...selection, i], i + 1);
     }
   }
-  complete(choices, 0);
   return keys;
+}
+
+function initExamMenu(menu, selected, initial) {
+  const summary = menu.querySelector('summary');
+  const options = menu.querySelector('.exam-options');
+  const checkboxes = [];
+  const addChoice = (label, checked, change) => {
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = checked;
+    box.addEventListener('change', () => {
+      change(box.checked);
+      any.checked = !selected.size;
+      for (const [i, subjectBox] of checkboxes) subjectBox.checked = selected.has(i);
+      summary.textContent = !selected.size ? 'Любой' :
+        selected.size === 1 ? catalog.subjects[[...selected][0]] : 'Выбрано: ' + selected.size;
+      refreshScoreInputs();
+      refresh();
+    });
+    const item = document.createElement('label');
+    item.append(box,label);
+    options.append(item);
+    return box;
+  };
+  selected.add(initial);
+  summary.textContent = catalog.subjects[initial];
+  const any = addChoice('Любой', false, checked => { if (checked) selected.clear(); });
+  catalog.subjects.forEach((subject,i) => {
+    checkboxes.push([i,addChoice(subject, i === initial, checked => {
+      if (checked) selected.add(i);
+      else selected.delete(i);
+    })]);
+  });
+  menu.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && menu.open) {
+      menu.open = false;
+      summary.focus();
+    }
+  });
 }
 const university = document.getElementById('university');
 const universitySummary = document.getElementById('university-summary');
@@ -606,9 +662,26 @@ function appendPage() {
   rendered += next.length;
   more.hidden = rendered >= results.length;
 }
+let displayedDirections = [];
+function updateDirections(rows) {
+  const names = [...new Set(rows.map(row=>row.fields[1]))].sort((a,b)=>a.localeCompare(b,'ru'));
+  if (names.length === displayedDirections.length && names.every((name,i)=>name===displayedDirections[i])) return;
+  displayedDirections = names;
+  const previous = direction.value;
+  direction.replaceChildren(new Option('Все направления',''), ...names.map(name=>new Option(name,name)));
+  direction.value = names.includes(previous) ? previous : '';
+}
+
 function refresh() {
   const choices = chosenSubjects();
-  const keys = matchingExamKeys(choices);
+  const keys = matchingExamKeys();
+  const examMatches = matchPrograms(catalog.rows,keys,disputed.checked);
+  updateDirections(examMatches);
+  const applicableLimits = (row,limits) => {
+    if (!limits.length) return [limits];
+    return (disputed.checked ? row.expanded : row.confirmed).filter(key=>keys.has(key))
+      .map(key=>limits.filter(([i])=>key.split('.').includes(String(i+1).padStart(2,'0'))));
+  };
   const active = [...new Set(choices)].filter(i=>scoreLimits.get(i));
   const invalidScores=active.some(i=>!validLimit(scoreLimits.get(i)));
   const limits=active.map(i=>[i,Number(scoreLimits.get(i))]);
@@ -617,12 +690,16 @@ function refresh() {
   const invalidTotal=totalScore.validity?.badInput ||
     (total!==null && (!/^\d+$/.test(rawTotal)||!Number.isSafeInteger(total)));
   totalScore.setAttribute('aria-invalid',String(Boolean(invalidTotal)));
-  results = (invalidScores||invalidTotal)?[]:filterOffers(matchPrograms(catalog.rows,keys,disputed.checked), selectedSchools, funding.value)
+  results = (invalidScores||invalidTotal)?[]:filterOffers(examMatches, selectedSchools, funding.value)
     .filter(row => (!direction.value || row.fields[1]===direction.value)  );
   if (total === null) {
-    results=results.filter(row=>matchesScores(row,funding.value,limits));
+    results=results.filter(row=>applicableLimits(row,limits).some(test=>matchesScores(row,funding.value,test)));
   } else {
-    results=results.map(row=>({row,cutoff:qualifyingPassScore(row,funding.value,limits,total)}))
+    results=results.map(row=>{
+      const cutoffs = applicableLimits(row,limits).map(test=>qualifyingPassScore(row,funding.value,test,total))
+        .filter(cutoff=>cutoff!==null);
+      return {row,cutoff:cutoffs.length ? Math.max(...cutoffs) : null};
+    })
       .filter(entry=>entry.cutoff!==null)
       .sort((a,b)=>b.cutoff-a.cutoff)
       .map(entry=>entry.row);
@@ -642,13 +719,11 @@ function refresh() {
 }
 try {
   catalog = JSON.parse(document.getElementById('catalog-data').textContent);
-  selects.forEach((select,i) => {
-    if (i > 0) select.add(new Option('Любой',anyExam));
-    for (const [index,subject] of catalog.subjects.entries()) select.add(new Option(subject,String(index)));
-    select.value = String(catalog.default[i]);
-    select.disabled = false;
-    select.addEventListener('change',()=>{refreshScoreInputs();refresh();});
-  });
+  for (const [index,subject] of catalog.subjects.entries()) firstExam.add(new Option(subject,String(index)));
+  firstExam.value = String(catalog.default[0]);
+  firstExam.disabled = false;
+  firstExam.addEventListener('change',()=>{refreshScoreInputs();refresh();});
+  examMenus.forEach((menu,i)=>initExamMenu(menu,alternateExams[i],catalog.default[i+1]));
   const schoolNames = [...new Set(catalog.rows.map(row => row.fields[0]))]
     .filter(name => name && name !== '—').sort((a,b) => a.localeCompare(b,'ru'));
   const updateSchoolSelection = () => {
@@ -677,7 +752,9 @@ try {
     updateSchoolSelection();
   });
   document.addEventListener('click', event => {
-    if (university.open && !university.contains(event.target)) university.open = false;
+    for (const menu of [university,...examMenus]) {
+      if (menu.open && !menu.contains(event.target)) menu.open = false;
+    }
   });
   university.addEventListener('keydown', event => {
     if (event.key === 'Escape' && university.open) {
@@ -685,8 +762,6 @@ try {
       university.querySelector('summary').focus();
     }
   });
-  const directions=[...new Set(catalog.rows.map(row=>row.fields[1]))].sort((a,b)=>a.localeCompare(b,'ru'));
-  for(const name of directions)direction.add(new Option(name,name));
   refreshScoreInputs();
   for (const select of [funding,direction]) {
     select.disabled = false;
