@@ -410,6 +410,16 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 .brand{gap:9px;font-family:'Noto Serif',Georgia,serif;font-size:22px;font-weight:700;letter-spacing:-.35px;color:var(--ink);line-height:1.15}
 .brand svg{display:block;width:28px;height:22px;flex:none}
 @media(max-width:380px){.brand{font-size:19px;gap:8px}.brand svg{width:25px;height:20px}}
+
+#guide-open,.guide-head button{color:var(--ink);background:white;border:1px solid #aabbd9;border-radius:8px;padding:.55em .95em;cursor:pointer;font:inherit}
+#guide-open{margin:1rem 0}
+#guide-open:hover,.guide-head button:hover{background:#edf2fa}
+#usage-guide{width:min(44rem,94vw);max-height:85vh;max-height:85dvh;box-sizing:border-box;padding:0;border:1px solid #ccd6e5;border-radius:14px;color:var(--ink);background:white;text-align:left}
+#usage-guide::backdrop{background:rgba(23,35,56,.5)}
+.guide-head{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem;background:white;border-bottom:1px solid #d6dfed}
+.guide-head h2{font-size:clamp(1rem,3.5vw,1.45rem);margin:0;line-height:1.25}
+.guide-steps{padding:0 1.3em 0 2.5em;margin:1em 0 1.4em;line-height:1.55}
+.guide-steps>li+li{margin-top:1em}.guide-steps p,.guide-steps ul{margin:.45em 0 0}
 </style>
 </head>
 <body>
@@ -420,7 +430,20 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 <p class="context">ПРИЁМНАЯ КАМПАНИЯ 2026</p>
 <h1>Подбор программ<br> <span>по ЕГЭ</span></h1>
 <div class="hero-skyline" aria-hidden="true"></div>
-<p class="intro">Выберите города. Оставьте список экзаменов пустым, чтобы увидеть все программы, или отметьте сдаваемые предметы для подбора по ЕГЭ. Подбор покажет программы, для которых у вас есть необходимый набор предметов; затем уточните вузы, направления и условия поступления. В полях баллов укажите свои результаты или ожидаемые баллы — пустые поля не ограничивают выдачу.</p>
+<button type="button" id="guide-open" aria-haspopup="dialog" aria-controls="usage-guide">Инструкция использования</button>
+<dialog id="usage-guide" aria-labelledby="guide-heading">
+<header class="guide-head"><h2 id="guide-heading">Инструкция использования</h2><form method="dialog"><button aria-label="Закрыть инструкцию" autofocus>Закрыть</button></form></header>
+<ol class="guide-steps">
+<li><strong>Выберите город.</strong> Отметьте Санкт-Петербург, Москву или оба города. Подборка обновляется автоматически.</li>
+<li><strong>Отметьте свои экзамены.</strong> В разделе «Ваши экзамены» выберите все предметы, которые сдаёте, включая русский язык. Если сдаёте четыре ЕГЭ, отметьте все четыре: сайт проверит подходящие комбинации. Если готовы сдавать дополнительное испытание вуза, отметьте «ДВИ». Для Горного университета выберите «ДВИ (аттестат)» и два профильных предмета. Чтобы посмотреть все программы города, оставьте список экзаменов пустым.</li>
+<li><strong>Выберите условия поступления.</strong>
+<ul><li>«Все» — бюджетные и платные варианты.</li><li>«Бюджет (общий конкурс)» — есть хотя бы одно место по общему конкурсу, например 10/1.</li><li>«Бюджет (только квоты)» — все бюджетные места выделены под квоты, например 10/0. Если у вас есть право на квоту, посмотрите также программы со смешанным набором в разделе общего конкурса.</li><li>«Платное» — есть места по договору.</li></ul></li>
+<li><strong>Уточните вузы и направления.</strong> Начните вводить название в поиске и отметьте нужные варианты галочками. Можно оставить «Все вузы» и «Все направления».</li>
+<li><strong>Укажите баллы, если хотите сузить подборку.</strong> В разделе «Минимальные баллы по предметам» введите свои результаты или ожидаемые баллы. Например, при 70 по математике подойдут программы с минимумом до 70 включительно.
+<p>В поле «Сумма баллов для поступления» введите сумму за вступительные испытания и индивидуальные достижения (до 10 дополнительных баллов). При сумме 275 сайт покажет программы с известным проходным баллом за 2026 год до 275 включительно, начиная с самого высокого подходящего балла. Это ориентир для будущего поступления. В режиме «Только квоты» сайт сравнивает сумму с бюджетным баллом из карточки. Для конкретной квоты проходной балл может отличаться.</p><p>Чтобы посмотреть программы без ограничений по баллам, оставьте поля пустыми.</p></li>
+<li><strong>Задайте стоимость за год.</strong> Можно заполнить только поле «До». При лимите 400 000 ₽ в подборку войдут и программы за 400 000 ₽. Для Москвы, если известна цена одного семестра, фильтр оценивает стоимость года, умножая её на два.</li>
+<li><strong>Изучите карточки и соберите подборку.</strong> Сравните экзамены, места и стоимость. Откройте «Баллы и сведения о поступлении», перейдите к программе или учебному плану, если есть ссылка. Звёздочка у вуза отсылает к пояснению в карточке. Отметьте интересные программы галочками и откройте «Корзину». Выбранные программы останутся в ней при смене фильтров.</li>
+</ol></dialog>
 <form id="filters" class="filters">
 <fieldset class="city-filter"><legend>Город</legend>
 <div class="city-choices"><label><input type="checkbox" name="catalog-city" value="spb" checked> Санкт-Петербург</label>
@@ -717,11 +740,14 @@ const universitySummary = document.getElementById('university-summary');
 const universityOptions = document.getElementById('university-options');
 const universityClear = document.getElementById('university-clear');
 const selectedSchools = new Set();
+const usageGuide = document.getElementById('usage-guide');
+document.getElementById('guide-open').addEventListener('click', () => usageGuide.showModal());
 const schoolLabels = new Map([
   ["СПбПУ", "СПБПУ (Политех)"],
   ["СПбГУПТД", "ГУПТД (Тряпочка)"],
   ["СПбГЭУ", "СПбГЭУ (ФинЭк)"],
-  ["ВХУТЕИН", "ВХУТЕИН (частный)"],
+  ["ВХУТЕИН", "ВХУТЕИН"],
+  ["СПбЮА", "СПбЮА"],
   ["ПСПбГМУ", "ПСПБГМУ (Павлова)"],
   ["СПбГК", "СПБГК (Консерватория)"],
   ["СПбГЛТУ", "СПБГЛТУ (Лесопилка)"],
@@ -729,10 +755,10 @@ const schoolLabels = new Map([
   ["СПбГПМУ", "СПБГПМУ (Педиатричка)"],
   ["СПбГТИ (ТУ)", "СПБГТИ (ТУ) (Техноложка)"],
   ["СПбГУВМ", "СПБГУВМ (Ветеринарный)"],
-  ["СПбУТУиЭ", "СПБУТУиЭ (частный)"],
+  ["СПбУТУиЭ", "СПБУТУиЭ"],
   ["СПХФУ", "СПХФУ (ХимФарм)"],
   ["РГГМУ", "РГГМУ (Гидромет)"],
-  ["СПбГУП", "СПБГУП (Профсоюзов) (частный)"],
+  ["СПбГУП", "СПБГУП (Профсоюзов)"],
   ["ГГУ", "ГГУ (Гатчинский)"],
   ["СПбГУТ", "СПбГУТ (Бонч-Бруевича)"],
   ["СПГХПА", "СПБХПА (Штиглица)"],
@@ -1376,6 +1402,10 @@ try {
     refresh();
   };
   const schoolsWithMilitary = new Set(catalog.rows.filter(row=>row.military).map(row=>row.fields[0]));
+  for (const name of new Set(catalog.rows.filter(row=>row.private).map(row=>row.fields[0]))) {
+    const title = (schoolLabels.get(name) ?? name).replace(/\s*[-–—]\s*частный вуз$/i,'');
+    schoolLabels.set(name, title + ' (частный вуз)');
+  }
   for (const name of schoolNames) {
     const label = document.createElement('label');
     const checkbox = document.createElement('input');
