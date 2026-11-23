@@ -421,6 +421,9 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 .guide-steps{padding:0 1.3em 0 2.5em;margin:1em 0 1.4em;line-height:1.55}
 .guide-steps>li+li{margin-top:1em}.guide-steps p,.guide-steps ul{margin:.45em 0 0}
 .extra-filters label.feature-check{display:flex;align-items:center;gap:.45em;margin-top:.45em;cursor:pointer}.feature-check input{width:auto;flex:none;accent-color:var(--accent-text)}
+.extra-filters{align-items:start}
+.extra-filters .school-filter-label{display:block;margin:0 0 5px;font-size:.89rem;line-height:1.5;font-weight:600;color:var(--muted)}
+.extra-filters #funding,.extra-filters details>summary{box-sizing:border-box;height:47px}
 </style>
 </head>
 <body>
@@ -473,9 +476,10 @@ select,.score-fields input,.total-filter input,.price-inputs input{border-color:
 </details>
 <label class="feature-check"><input type="checkbox" id="military-only"> Только вузы с военной подготовкой</label>
 </div>
-<label>Условия поступления<select id="funding" disabled>
+<div class="funding-filter"><label class="school-filter-label" for="funding">Условия поступления</label>
+<select id="funding" disabled>
 <option value="">Все</option><option value="budget">Бюджет (общий конкурс)</option><option value="quota">Бюджет (только квоты)</option><option value="paid">Платное</option>
-</select></label>
+</select></div>
 <div class="school-filter exam-filter">
 <span class="school-filter-label" id="direction-label">Направления</span>
 <details id="direction" aria-labelledby="direction-label">
